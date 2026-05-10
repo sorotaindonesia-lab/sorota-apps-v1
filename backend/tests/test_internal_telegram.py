@@ -165,3 +165,32 @@ def test_telegram_active_customer_can_calculate_margin(client):
 
     assert outbound_messages
     assert "Rp6.500" in outbound_messages[-1].message_text
+
+
+def test_telegram_active_customer_can_get_recommended_price(client):
+    def send(text: str, message_id: int):
+        return client.post(
+            "/internal/telegram/inbound",
+            json={
+                "telegram_user_id": "12345",
+                "chat_id": "44444",
+                "first_name": "Budi",
+                "message_text": text,
+                "telegram_message_id": str(message_id),
+                "raw_payload": {"update_id": message_id},
+            },
+        )
+
+    for index, text in enumerate(
+        ["Halo", "Ayam Geprek Mas Budi", "kuliner", "Bandung", "ayam geprek"],
+        start=1,
+    ):
+        assert send(text, index).status_code == 200
+
+    response = send("hpp 11500 target margin 30 harga jual berapa?", 6)
+    assert response.status_code == 200
+    assert response.json()["customer_status"] == "active"
+    assert "HPP: Rp11.500" in response.json()["reply_text"]
+    assert "Target margin: 30,00%" in response.json()["reply_text"]
+    assert "Harga minimal: Rp16.429" in response.json()["reply_text"]
+    assert "Range aman: Rp17.000-Rp19.000" in response.json()["reply_text"]

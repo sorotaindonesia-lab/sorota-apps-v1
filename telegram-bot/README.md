@@ -95,3 +95,20 @@ HPP: Rp11.500
 Margin: Rp6.500
 Margin %: 36,11%
 ```
+
+## Recommend Price Test
+
+After the bot confirms the profile is active, send:
+
+```text
+hpp 11500 target margin 30 harga jual berapa?
+```
+
+Expected reply includes:
+
+```text
+HPP: Rp11.500
+Target margin: 30,00%
+Harga minimal: Rp16.429
+Range aman: Rp17.000-Rp19.000
+```

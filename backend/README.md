@@ -68,6 +68,14 @@ harga jual 18000 hpp 11500 margin berapa?
 
 The reply includes selling price, HPP, margin amount, margin percent, and a simple recommendation.
 
+It can also recommend a selling price from HPP and target margin:
+
+```text
+hpp 11500 target margin 30 harga jual berapa?
+```
+
+The reply includes HPP, target margin, minimum price, and a rounded selling price range.
+
 OpenAI-compatible API providers can be configured with:
 
 ```text
