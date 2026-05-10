@@ -77,4 +77,4 @@ User sends products, for example ayam geprek, es teh
 Bot confirms the profile is active
 ```
 
-Run `alembic upgrade head` in `backend/` before testing if your database was created before the profiling state machine was added.
+Run `.\.venv\Scripts\alembic.exe upgrade head` in `backend/` before testing if your database was created before the profiling state machine was added.

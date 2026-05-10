@@ -28,15 +28,16 @@ Run the latest migration:
 
 ```powershell
 cd backend
-alembic upgrade head
+python -m pip install -r requirements.txt
+.\.venv\Scripts\alembic.exe upgrade head
 ```
 
 Create a new ORM-driven migration after changing models:
 
 ```powershell
 cd backend
-alembic revision --autogenerate -m "describe change"
-alembic upgrade head
+.\.venv\Scripts\alembic.exe revision --autogenerate -m "describe change"
+.\.venv\Scripts\alembic.exe upgrade head
 ```
 
 The older SQL files in `../database-migrations/` are kept as a readable schema reference. For app development, prefer Alembic.
@@ -80,3 +81,18 @@ pip install -r requirements.txt
 ```
 
 The backend uses `psycopg` v3, not `psycopg2`.
+
+If you see this error while running Alembic:
+
+```text
+ModuleNotFoundError: No module named 'psycopg'
+```
+
+PowerShell may be using a global `alembic.exe` instead of the virtualenv. Run Alembic through the active Python:
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+.\.venv\Scripts\alembic.exe upgrade head
+```
