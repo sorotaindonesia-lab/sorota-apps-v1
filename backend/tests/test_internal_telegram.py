@@ -1,7 +1,7 @@
 from sqlalchemy import select
 
 from app.db.session import get_db
-from app.models import Product
+from app.models import Product, WhatsAppMessage
 
 
 def test_inbound_telegram_creates_customer_with_channel_key(client):
@@ -114,3 +114,54 @@ def test_telegram_invalid_category_keeps_state(client):
 
     customer = client.get("/api/customers").json()["items"][0]
     assert customer["conversation_state"] == "ASK_BUSINESS_CATEGORY"
+
+
+def test_telegram_active_customer_can_calculate_margin(client):
+    def send(text: str, message_id: int):
+        return client.post(
+            "/internal/telegram/inbound",
+            json={
+                "telegram_user_id": "12345",
+                "chat_id": "33333",
+                "first_name": "Budi",
+                "message_text": text,
+                "telegram_message_id": str(message_id),
+                "raw_payload": {"update_id": message_id},
+            },
+        )
+
+    for index, text in enumerate(
+        ["Halo", "Ayam Geprek Mas Budi", "kuliner", "Bandung", "ayam geprek"],
+        start=1,
+    ):
+        assert send(text, index).status_code == 200
+
+    response = send("harga jual 18000 hpp 11500 margin berapa?", 6)
+    assert response.status_code == 200
+    assert response.json()["customer_status"] == "active"
+    assert "Rp18.000" in response.json()["reply_text"]
+    assert "Rp11.500" in response.json()["reply_text"]
+    assert "Rp6.500" in response.json()["reply_text"]
+    assert "36,11%" in response.json()["reply_text"]
+
+    customer_id = client.get("/api/customers").json()["items"][0]["id"]
+    detail = client.get(f"/api/customers/{customer_id}").json()
+    assert detail["conversation_state"] == "ACTIVE"
+
+    override = client.app.dependency_overrides[get_db]
+    db_generator = override()
+    db = next(db_generator)
+    try:
+        outbound_messages = list(
+            db.scalars(
+                select(WhatsAppMessage)
+                .where(WhatsAppMessage.direction == "outbound")
+                .order_by(WhatsAppMessage.created_at)
+            ).all()
+        )
+    finally:
+        db.close()
+        db_generator.close()
+
+    assert outbound_messages
+    assert "Rp6.500" in outbound_messages[-1].message_text

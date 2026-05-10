@@ -78,3 +78,20 @@ Bot confirms the profile is active
 ```
 
 Run `.\.venv\Scripts\alembic.exe upgrade head` in `backend/` before testing if your database was created before the profiling state machine was added.
+
+## Margin Calculator Test
+
+After the bot confirms the profile is active, send:
+
+```text
+harga jual 18000 hpp 11500 margin berapa?
+```
+
+Expected reply includes:
+
+```text
+Harga jual: Rp18.000
+HPP: Rp11.500
+Margin: Rp6.500
+Margin %: 36,11%
+```

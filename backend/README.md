@@ -58,6 +58,16 @@ POST /api/early-warnings/{event_id}/approve
 POST /api/early-warnings/{event_id}/send
 ```
 
+## Active Assistant MVP
+
+After customer profiling reaches `ACTIVE`, the backend can answer deterministic margin questions without AI:
+
+```text
+harga jual 18000 hpp 11500 margin berapa?
+```
+
+The reply includes selling price, HPP, margin amount, margin percent, and a simple recommendation.
+
 OpenAI-compatible API providers can be configured with:
 
 ```text
