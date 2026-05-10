@@ -1,0 +1,10 @@
+CREATE INDEX IF NOT EXISTS idx_customers_status ON customers(status);
+CREATE INDEX IF NOT EXISTS idx_customers_phone_number ON customers(phone_number);
+CREATE INDEX IF NOT EXISTS idx_businesses_customer_id ON businesses(customer_id);
+CREATE INDEX IF NOT EXISTS idx_businesses_category ON businesses(business_category);
+CREATE INDEX IF NOT EXISTS idx_products_business_id ON products(business_id);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_messages_customer_created ON whatsapp_messages(customer_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_created ON ai_usage_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_knowledge_category ON knowledge_documents(category, business_category);
+CREATE INDEX IF NOT EXISTS idx_early_warning_events_customer ON early_warning_events(customer_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_early_warning_events_status ON early_warning_events(status);
