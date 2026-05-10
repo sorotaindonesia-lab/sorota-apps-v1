@@ -50,6 +50,7 @@ GET /api/customers
 GET /api/customers/{customer_id}
 PATCH /api/customers/{customer_id}
 POST /internal/whatsapp/inbound
+POST /internal/telegram/inbound
 POST /api/admin-command
 GET /api/early-warnings
 POST /api/early-warnings/{event_id}/approve
