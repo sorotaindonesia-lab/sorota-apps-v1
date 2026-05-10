@@ -180,6 +180,48 @@ def _fallback_general_business_answer(payload: AnswerComposerInput) -> str:
     )
 
 
+def _fallback_database_mapping_answer(payload: AnswerComposerInput) -> str:
+    mapping = payload.tool_results.get("database_mapping") or {}
+    business = mapping.get("business") or {}
+    products = mapping.get("products") or []
+
+    saved_parts: list[str] = []
+    category = business.get("business_category")
+    location = business.get("location")
+    if category:
+        saved_parts.append(f"kategorinya {str(category).replace('_', ' ')}")
+    if location:
+        saved_parts.append(f"lokasinya {location}")
+
+    product_line = ""
+    if products:
+        product = products[0]
+        product_name = product.get("name")
+        if product_name:
+            saved_parts.append(f"produk utamanya {product_name}")
+
+        price_parts: list[str] = []
+        if product.get("selling_price"):
+            price_parts.append(f"harga jual {_format_rupiah(product['selling_price'])}")
+        if product.get("hpp"):
+            price_parts.append(f"HPP {_format_rupiah(product['hpp'])}")
+        if price_parts:
+            product_line = f"\n\nUntuk {product_name}, saya catat " + " dan ".join(price_parts) + "."
+        if product.get("margin_percent"):
+            product_line += f" Margin kotornya sekitar {_format_percent(product['margin_percent'])}%."
+
+    if not saved_parts and not product_line:
+        return _fallback_general_business_answer(payload)
+
+    saved_text = ", ".join(saved_parts)
+    opener = f"Siap, Kak. Saya catat {saved_text}." if saved_text else "Siap, Kak. Data bisnisnya saya catat."
+
+    return (
+        f"{opener}{product_line}\n\n"
+        "Ini sudah cukup jadi dasar untuk analisis berikutnya. Setelah ini Kakak bisa tanya cek harga, margin, promo, stok, atau supplier, dan saya akan pakai data ini sebagai konteks."
+    )
+
+
 def compose_fallback_answer(payload: AnswerComposerInput) -> str:
     if payload.missing_fields:
         if "hpp" in payload.missing_fields and "selling_price" in payload.missing_fields:
@@ -194,6 +236,10 @@ def compose_fallback_answer(payload: AnswerComposerInput) -> str:
 
     if "recommend_price" in payload.tool_results:
         return _fallback_recommend_price_answer(payload)
+
+    database_mapping = payload.tool_results.get("database_mapping") or {}
+    if payload.intent == "business_profile_update" and database_mapping.get("has_updates"):
+        return _fallback_database_mapping_answer(payload)
 
     if payload.intent in {"general_business_advice", "promotion_advice", "restock_advice", "supplier_search"}:
         return _fallback_general_business_answer(payload)

@@ -87,6 +87,14 @@ stok saya mulai habis
 cara cari supplier murah
 ```
 
+Active chat also extracts database-ready business facts from natural messages and saves them into existing ORM tables when the user gives useful data:
+
+```text
+Saya jual ayam geprek di Bandung, harga jualnya 18 ribu, HPP sekitar 11.500.
+```
+
+That message can update the business category/location, product selling price/HPP/margin, and `main_product` memory. No new migration is required for this mapping layer because it uses the existing `businesses`, `products`, and `user_memories` tables.
+
 OpenAI-compatible API providers can be configured with:
 
 ```text

@@ -122,3 +122,20 @@ jualan saya sepi, harus gimana?
 ```
 
 Expected response should feel like business advice, not a calculator-only bot. It should mention the business context and suggest practical next steps.
+
+## Database Mapping Test
+
+After the bot confirms the profile is active, send:
+
+```text
+Saya jual ayam geprek di Bandung, harga jualnya 18 ribu, HPP sekitar 11.500.
+```
+
+Expected behavior:
+
+```text
+Bot replies with useful price/margin context
+Backend saves Bandung as business location
+Backend saves ayam geprek selling price, HPP, and margin
+Backend saves main_product memory
+```

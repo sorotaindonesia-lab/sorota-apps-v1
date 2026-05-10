@@ -1,7 +1,9 @@
+from decimal import Decimal
+
 from sqlalchemy import select
 
 from app.db.session import get_db
-from app.models import Product, WhatsAppMessage
+from app.models import Product, UserMemory, WhatsAppMessage
 
 
 def test_inbound_telegram_creates_customer_with_channel_key(client):
@@ -223,3 +225,51 @@ def test_telegram_active_customer_gets_general_business_advice(client):
     assert "Ayam Geprek Mas Budi" in response.json()["reply_text"]
     assert "jangan langsung banting harga" in response.json()["reply_text"]
     assert "ayam geprek" in response.json()["reply_text"]
+
+
+def test_telegram_active_customer_maps_business_data_to_database(client):
+    def send(text: str, message_id: int):
+        return client.post(
+            "/internal/telegram/inbound",
+            json={
+                "telegram_user_id": "12345",
+                "chat_id": "66666",
+                "first_name": "Budi",
+                "message_text": text,
+                "telegram_message_id": str(message_id),
+                "raw_payload": {"update_id": message_id},
+            },
+        )
+
+    for index, text in enumerate(
+        ["Halo", "Ayam Geprek Mas Budi", "kuliner", "Cimahi", "ayam geprek"],
+        start=1,
+    ):
+        assert send(text, index).status_code == 200
+
+    response = send("Saya jual ayam geprek di Bandung, harga jualnya 18 ribu, HPP sekitar 11.500.", 6)
+    assert response.status_code == 200
+    assert "Rp18.000" in response.json()["reply_text"]
+    assert "Rp11.500" in response.json()["reply_text"]
+
+    customer_id = client.get("/api/customers").json()["items"][0]["id"]
+    detail = client.get(f"/api/customers/{customer_id}").json()
+    assert detail["business"]["business_category"] == "kuliner"
+    assert detail["business"]["location"] == "Bandung"
+
+    override = client.app.dependency_overrides[get_db]
+    db_generator = override()
+    db = next(db_generator)
+    try:
+        product = db.scalar(select(Product).where(Product.name == "ayam geprek"))
+        memory = db.scalar(select(UserMemory).where(UserMemory.memory_key == "main_product"))
+    finally:
+        db.close()
+        db_generator.close()
+
+    assert product is not None
+    assert product.selling_price == Decimal("18000")
+    assert product.hpp == Decimal("11500")
+    assert product.margin_percent == Decimal("36.11")
+    assert memory is not None
+    assert memory.memory_value == {"value": "ayam geprek"}
