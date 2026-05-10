@@ -13,8 +13,8 @@ def _connect_args(database_url: str) -> dict[str, object]:
 
 
 engine = create_engine(
-    settings.database_url,
-    connect_args=_connect_args(settings.database_url),
+    settings.sqlalchemy_database_url,
+    connect_args=_connect_args(settings.sqlalchemy_database_url),
     pool_pre_ping=True,
 )
 

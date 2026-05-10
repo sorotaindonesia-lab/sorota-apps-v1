@@ -22,6 +22,8 @@ Set `DATABASE_URL` in `backend/.env` first:
 DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST.neon.tech/DBNAME?sslmode=require
 ```
 
+`postgresql://...` also works; the app normalizes it to `postgresql+psycopg://...` so SQLAlchemy uses the installed `psycopg` v3 driver.
+
 Run the latest migration:
 
 ```powershell
@@ -60,3 +62,20 @@ OpenAI-compatible API providers can be configured with:
 OPENAI_API_KEY=your_key
 OPENAI_BASE_URL=https://your-openai-compatible-base-url/v1
 ```
+
+## Troubleshooting
+
+If you see this error:
+
+```text
+ModuleNotFoundError: No module named 'psycopg2'
+```
+
+Make sure the latest code is pulled and dependencies are installed:
+
+```powershell
+cd backend
+pip install -r requirements.txt
+```
+
+The backend uses `psycopg` v3, not `psycopg2`.

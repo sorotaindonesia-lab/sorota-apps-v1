@@ -30,6 +30,12 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
 
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        if self.database_url.startswith("postgresql://"):
+            return self.database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+        return self.database_url
+
 
 @lru_cache
 def get_settings() -> Settings:
