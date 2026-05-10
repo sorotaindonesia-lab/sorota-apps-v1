@@ -53,7 +53,7 @@ def test_answer_active_message_returns_recommend_price_reply():
     reply = answer_active_message("hpp 11500 target margin 30 harga jual berapa?")
 
     assert reply.handled is True
-    assert "HPP: Rp11.500" in reply.reply_text
-    assert "Target margin: 30,00%" in reply.reply_text
-    assert "Harga minimal: Rp16.429" in reply.reply_text
-    assert "Range aman: Rp17.000-Rp19.000" in reply.reply_text
+    assert "Rp11.500" in reply.reply_text
+    assert "30,00%" in reply.reply_text
+    assert "Rp16.429" in reply.reply_text
+    assert "Rp17.000-Rp19.000" in reply.reply_text

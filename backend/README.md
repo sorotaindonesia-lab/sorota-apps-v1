@@ -60,15 +60,17 @@ POST /api/early-warnings/{event_id}/send
 
 ## Active Assistant MVP
 
-After customer profiling reaches `ACTIVE`, the backend can answer deterministic margin questions without AI:
+After customer profiling reaches `ACTIVE`, the backend uses structured context plus deterministic calculators before composing a final answer. If `OPENAI_API_KEY` is configured, calculator results are passed through the answer composer for a more natural response. If not, a local natural fallback is used.
+
+Margin example:
 
 ```text
 harga jual 18000 hpp 11500 margin berapa?
 ```
 
-The reply includes selling price, HPP, margin amount, margin percent, and a simple recommendation.
+The reply includes selling price, HPP, margin amount, margin percent, and a practical recommendation.
 
-It can also recommend a selling price from HPP and target margin:
+Recommend price example:
 
 ```text
 hpp 11500 target margin 30 harga jual berapa?

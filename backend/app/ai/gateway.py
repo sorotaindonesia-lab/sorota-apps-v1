@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from time import perf_counter
 from typing import Any
+from uuid import UUID
 
 from openai import OpenAI
 from sqlalchemy.orm import Session
@@ -30,7 +31,7 @@ class OpenAIGateway:
         db: Session,
         *,
         task_type: str,
-        customer_id: str | None = None,
+        customer_id: UUID | None = None,
         model: str | None = None,
         **kwargs: Any,
     ) -> AiCallResult:

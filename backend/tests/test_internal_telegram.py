@@ -190,7 +190,8 @@ def test_telegram_active_customer_can_get_recommended_price(client):
     response = send("hpp 11500 target margin 30 harga jual berapa?", 6)
     assert response.status_code == 200
     assert response.json()["customer_status"] == "active"
-    assert "HPP: Rp11.500" in response.json()["reply_text"]
-    assert "Target margin: 30,00%" in response.json()["reply_text"]
-    assert "Harga minimal: Rp16.429" in response.json()["reply_text"]
-    assert "Range aman: Rp17.000-Rp19.000" in response.json()["reply_text"]
+    assert "Ayam Geprek Mas Budi" in response.json()["reply_text"]
+    assert "Rp11.500" in response.json()["reply_text"]
+    assert "30,00%" in response.json()["reply_text"]
+    assert "Rp16.429" in response.json()["reply_text"]
+    assert "Rp17.000-Rp19.000" in response.json()["reply_text"]

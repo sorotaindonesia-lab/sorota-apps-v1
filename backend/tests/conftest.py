@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 os.environ["DATABASE_URL"] = "sqlite+pysqlite:///:memory:"
+os.environ["OPENAI_API_KEY"] = ""
 
 import app.models  # noqa: F401
 from app.db.base import Base

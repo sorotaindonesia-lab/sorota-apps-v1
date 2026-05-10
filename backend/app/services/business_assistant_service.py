@@ -2,7 +2,11 @@ import re
 from dataclasses import dataclass
 from decimal import Decimal
 
+from sqlalchemy.orm import Session
+
+from app.ai.answer_composer import AnswerComposerInput, compose_answer, compose_fallback_answer
 from app.calculators import calculate_margin, recommend_price
+from app.models import Business, Customer
 
 
 @dataclass(frozen=True)
@@ -128,16 +132,56 @@ def parse_recommend_price_request(message_text: str | None) -> RecommendPriceReq
     return RecommendPriceRequest(hpp=hpp, target_margin_percent=target_margin)
 
 
-def _format_rupiah(value: Decimal) -> str:
-    whole = int(value)
-    return f"Rp{whole:,}".replace(",", ".")
+def _primary_business(customer: Customer | None) -> Business | None:
+    if customer is None or not customer.businesses:
+        return None
+    return customer.businesses[0]
 
 
-def _format_percent(value: Decimal) -> str:
-    return f"{value:.2f}".replace(".", ",")
+def _customer_context(customer: Customer | None) -> dict[str, object]:
+    if customer is None:
+        return {}
+    return {
+        "id": customer.id,
+        "name": customer.name,
+        "channel_key": customer.phone_number,
+        "status": customer.status,
+    }
 
 
-def answer_active_message(message_text: str | None) -> AssistantReply:
+def _business_context(customer: Customer | None) -> dict[str, object] | None:
+    business = _primary_business(customer)
+    if business is None:
+        return None
+    return {
+        "id": business.id,
+        "business_name": business.business_name,
+        "business_category": business.business_category,
+        "location": business.location,
+        "known_products": [product.name for product in business.products],
+    }
+
+
+def _conversation_state(customer: Customer | None) -> str:
+    return customer.conversation_state if customer else "ACTIVE"
+
+
+def _compose(
+    db: Session | None,
+    payload: AnswerComposerInput,
+    customer: Customer | None,
+) -> str:
+    if db is None:
+        return compose_fallback_answer(payload)
+    return compose_answer(db, payload, customer_id=customer.id if customer else None)
+
+
+def answer_active_message(
+    message_text: str | None,
+    *,
+    db: Session | None = None,
+    customer: Customer | None = None,
+) -> AssistantReply:
     recommend_request = parse_recommend_price_request(message_text)
     margin_request = parse_margin_request(message_text)
     text = _normalize_text(message_text)
@@ -145,27 +189,45 @@ def answer_active_message(message_text: str | None) -> AssistantReply:
     if recommend_request:
         result = recommend_price(recommend_request.hpp, recommend_request.target_margin_percent)
         lower_bound, upper_bound = result["recommended_price_range"]
-        midpoint = (lower_bound + upper_bound) / Decimal("2")
-        reply = (
-            "Rekomendasi harga jual Kakak:\n\n"
-            f"HPP: {_format_rupiah(recommend_request.hpp)}\n"
-            f"Target margin: {_format_percent(recommend_request.target_margin_percent)}%\n"
-            f"Harga minimal: {_format_rupiah(result['minimum_price'])}\n"
-            f"Range aman: {_format_rupiah(lower_bound)}-{_format_rupiah(upper_bound)}\n\n"
-            f"Saran saya mulai tes di {_format_rupiah(midpoint)} dulu, lalu lihat respons pembeli."
+        payload = AnswerComposerInput(
+            user_message=message_text or "",
+            intent="pricing_advice",
+            customer=_customer_context(customer),
+            business=_business_context(customer),
+            conversation_state=_conversation_state(customer),
+            tool_results={
+                "recommend_price": {
+                    "hpp": recommend_request.hpp,
+                    "target_margin_percent": recommend_request.target_margin_percent,
+                    "minimum_price": result["minimum_price"],
+                    "recommended_price_range": [lower_bound, upper_bound],
+                    "explanation": result["explanation"],
+                }
+            },
         )
+        reply = _compose(db, payload, customer)
         return AssistantReply(reply_text=reply, handled=True)
 
     if margin_request:
         result = calculate_margin(margin_request.selling_price, margin_request.hpp)
-        reply = (
-            "Margin produk Kakak:\n\n"
-            f"Harga jual: {_format_rupiah(margin_request.selling_price)}\n"
-            f"HPP: {_format_rupiah(margin_request.hpp)}\n"
-            f"Margin: {_format_rupiah(result['margin_amount'])}\n"
-            f"Margin %: {_format_percent(result['margin_percent'])}%\n\n"
-            f"{result['recommendation']}"
+        payload = AnswerComposerInput(
+            user_message=message_text or "",
+            intent="margin_calculation",
+            customer=_customer_context(customer),
+            business=_business_context(customer),
+            conversation_state=_conversation_state(customer),
+            tool_results={
+                "margin_calculation": {
+                    "selling_price": margin_request.selling_price,
+                    "hpp": margin_request.hpp,
+                    "margin_amount": result["margin_amount"],
+                    "margin_percent": result["margin_percent"],
+                    "status": result["status"],
+                    "recommendation": result["recommendation"],
+                }
+            },
         )
+        reply = _compose(db, payload, customer)
         return AssistantReply(reply_text=reply, handled=True)
 
     if any(keyword in text for keyword in ("target margin", "harga jual berapa", "rekomendasi harga", "saran harga")):

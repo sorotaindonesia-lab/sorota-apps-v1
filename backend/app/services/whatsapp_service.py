@@ -50,7 +50,7 @@ def handle_inbound_message(db: Session, payload: WhatsAppInboundRequest) -> tupl
     )
     db.add(customer)
     if customer.conversation_state == ConversationState.ACTIVE.value:
-        assistant_reply = answer_active_message(payload.message_text)
+        assistant_reply = answer_active_message(payload.message_text, db=db, customer=customer)
         reply_text = assistant_reply.reply_text
         customer.status = CustomerStatus.ACTIVE.value
     else:
