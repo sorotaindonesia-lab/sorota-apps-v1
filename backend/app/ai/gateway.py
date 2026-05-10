@@ -17,7 +17,13 @@ class AiCallResult:
 
 class OpenAIGateway:
     def __init__(self, client: OpenAI | None = None) -> None:
-        self.client = client or OpenAI(api_key=settings.openai_api_key)
+        client_kwargs: dict[str, str] = {}
+        if settings.openai_api_key:
+            client_kwargs["api_key"] = settings.openai_api_key
+        if settings.openai_base_url:
+            client_kwargs["base_url"] = settings.openai_base_url
+
+        self.client = client or OpenAI(**client_kwargs)
 
     def responses_create(
         self,
