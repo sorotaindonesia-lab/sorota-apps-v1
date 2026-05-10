@@ -1,3 +1,9 @@
+from sqlalchemy import select
+
+from app.db.session import get_db
+from app.models import Product
+
+
 def test_inbound_telegram_creates_customer_with_channel_key(client):
     response = client.post(
         "/internal/telegram/inbound",
@@ -19,3 +25,92 @@ def test_inbound_telegram_creates_customer_with_channel_key(client):
     customers = client.get("/api/customers").json()["items"]
     assert customers[0]["phone_number"] == "telegram:67890"
     assert customers[0]["name"] == "Budi"
+    assert customers[0]["conversation_state"] == "ASK_BUSINESS_NAME"
+
+
+def test_telegram_profiling_state_machine(client):
+    def send(text: str, message_id: int):
+        return client.post(
+            "/internal/telegram/inbound",
+            json={
+                "telegram_user_id": "12345",
+                "chat_id": "11111",
+                "first_name": "Budi",
+                "message_text": text,
+                "telegram_message_id": str(message_id),
+                "raw_payload": {"update_id": message_id},
+            },
+        )
+
+    first = send("Halo", 1)
+    assert first.status_code == 200
+    assert "nama bisnis" in first.json()["reply_text"].lower()
+
+    customer = client.get("/api/customers").json()["items"][0]
+    assert customer["status"] == "profiling"
+    assert customer["conversation_state"] == "ASK_BUSINESS_NAME"
+
+    second = send("Ayam Geprek Mas Budi", 2)
+    assert second.status_code == 200
+    assert "kategori" in second.json()["reply_text"].lower()
+
+    customer_id = client.get("/api/customers").json()["items"][0]["id"]
+    detail = client.get(f"/api/customers/{customer_id}").json()
+    assert detail["conversation_state"] == "ASK_BUSINESS_CATEGORY"
+    assert detail["business"]["business_name"] == "Ayam Geprek Mas Budi"
+
+    third = send("1", 3)
+    assert third.status_code == 200
+    assert "lokasi" in third.json()["reply_text"].lower()
+
+    detail = client.get(f"/api/customers/{customer_id}").json()
+    assert detail["conversation_state"] == "ASK_LOCATION"
+    assert detail["business"]["business_category"] == "kuliner"
+
+    fourth = send("Bandung", 4)
+    assert fourth.status_code == 200
+    assert "produk utama" in fourth.json()["reply_text"].lower()
+
+    detail = client.get(f"/api/customers/{customer_id}").json()
+    assert detail["conversation_state"] == "ASK_MAIN_PRODUCTS"
+    assert detail["business"]["location"] == "Bandung"
+
+    fifth = send("ayam geprek, es teh", 5)
+    assert fifth.status_code == 200
+    assert "data bisnis awal" in fifth.json()["reply_text"].lower()
+
+    detail = client.get(f"/api/customers/{customer_id}").json()
+    assert detail["status"] == "active"
+    assert detail["conversation_state"] == "ACTIVE"
+
+    override = client.app.dependency_overrides[get_db]
+    db_generator = override()
+    db = next(db_generator)
+    try:
+        product_names = list(db.scalars(select(Product.name).order_by(Product.name)).all())
+    finally:
+        db.close()
+        db_generator.close()
+
+    assert product_names == ["ayam geprek", "es teh"]
+
+
+def test_telegram_invalid_category_keeps_state(client):
+    client.post(
+        "/internal/telegram/inbound",
+        json={"chat_id": "22222", "message_text": "Halo", "telegram_message_id": "1"},
+    )
+    client.post(
+        "/internal/telegram/inbound",
+        json={"chat_id": "22222", "message_text": "Toko Budi", "telegram_message_id": "2"},
+    )
+    response = client.post(
+        "/internal/telegram/inbound",
+        json={"chat_id": "22222", "message_text": "kategori aneh", "telegram_message_id": "3"},
+    )
+
+    assert response.status_code == 200
+    assert "belum bisa mengenali" in response.json()["reply_text"].lower()
+
+    customer = client.get("/api/customers").json()["items"][0]
+    assert customer["conversation_state"] == "ASK_BUSINESS_CATEGORY"

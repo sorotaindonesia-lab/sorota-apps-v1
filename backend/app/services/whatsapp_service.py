@@ -3,9 +3,10 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.models import Customer, WhatsAppMessage
-from app.schemas.enums import CustomerStatus
+from app.schemas.enums import ConversationState, CustomerStatus
 from app.schemas.whatsapp import WhatsAppInboundRequest
 from app.services.customer_service import get_customer_by_phone
+from app.services.profiling_service import advance_profiling
 
 
 def handle_inbound_message(db: Session, payload: WhatsAppInboundRequest) -> tuple[str, str]:
@@ -14,6 +15,7 @@ def handle_inbound_message(db: Session, payload: WhatsAppInboundRequest) -> tupl
         customer = Customer(
             phone_number=payload.phone_number,
             status=CustomerStatus.PROFILING.value,
+            conversation_state=ConversationState.NEW.value,
             last_active_at=datetime.now(UTC),
         )
         db.add(customer)
@@ -34,6 +36,7 @@ def handle_inbound_message(db: Session, payload: WhatsAppInboundRequest) -> tupl
         )
     )
     db.add(customer)
+    result = advance_profiling(db, customer, payload.message_text)
     db.commit()
 
-    return "Mantap Kak. Nama bisnisnya apa ya?", customer.status
+    return result.reply_text, result.customer_status

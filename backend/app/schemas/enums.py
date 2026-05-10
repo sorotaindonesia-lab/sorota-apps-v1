@@ -24,6 +24,16 @@ class BusinessCategory(str, Enum):
     LAINNYA = "lainnya"
 
 
+class ConversationState(str, Enum):
+    NEW = "NEW"
+    ASK_BUSINESS_NAME = "ASK_BUSINESS_NAME"
+    ASK_BUSINESS_CATEGORY = "ASK_BUSINESS_CATEGORY"
+    ASK_LOCATION = "ASK_LOCATION"
+    ASK_MAIN_PRODUCTS = "ASK_MAIN_PRODUCTS"
+    ASK_PRICE_DATA = "ASK_PRICE_DATA"
+    ACTIVE = "ACTIVE"
+
+
 class EarlyWarningStatus(str, Enum):
     DRAFT = "draft"
     APPROVED = "approved"

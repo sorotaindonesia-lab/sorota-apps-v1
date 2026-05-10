@@ -3,9 +3,10 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.models import Customer, WhatsAppMessage
-from app.schemas.enums import CustomerStatus
+from app.schemas.enums import ConversationState, CustomerStatus
 from app.schemas.telegram import TelegramInboundRequest
 from app.services.customer_service import get_customer_by_phone
+from app.services.profiling_service import advance_profiling
 
 
 def _display_name(payload: TelegramInboundRequest) -> str | None:
@@ -27,6 +28,7 @@ def handle_inbound_message(db: Session, payload: TelegramInboundRequest) -> tupl
             name=_display_name(payload),
             phone_number=customer_key,
             status=CustomerStatus.PROFILING.value,
+            conversation_state=ConversationState.NEW.value,
             last_active_at=datetime.now(UTC),
         )
         db.add(customer)
@@ -49,6 +51,7 @@ def handle_inbound_message(db: Session, payload: TelegramInboundRequest) -> tupl
         )
     )
     db.add(customer)
+    result = advance_profiling(db, customer, payload.message_text)
     db.commit()
 
-    return "Mantap Kak. Nama bisnisnya apa ya?", customer.status
+    return result.reply_text, result.customer_status

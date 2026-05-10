@@ -52,6 +52,7 @@ class Customer(Base, TimestampMixin):
     name: Mapped[str | None] = mapped_column(String)
     phone_number: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False, default="registered")
+    conversation_state: Mapped[str] = mapped_column(String, nullable=False, default="NEW")
     created_by_admin_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid(as_uuid=True),
         ForeignKey("admins.id"),

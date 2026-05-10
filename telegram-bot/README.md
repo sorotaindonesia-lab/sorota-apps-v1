@@ -54,3 +54,27 @@ https://your-ngrok-url/webhook
 - Do not commit `.env`.
 - If the bot token has been exposed, rotate it in BotFather.
 - This adapter currently handles private text messages first.
+
+## Profiling Test Flow
+
+After backend, ngrok, and the Telegram adapter are running, message the bot:
+
+```text
+Halo
+```
+
+Expected flow:
+
+```text
+Bot asks business name
+User sends business name
+Bot asks business category
+User sends category number or text, for example 1 or kuliner
+Bot asks location
+User sends city/area
+Bot asks main products
+User sends products, for example ayam geprek, es teh
+Bot confirms the profile is active
+```
+
+Run `alembic upgrade head` in `backend/` before testing if your database was created before the profiling state machine was added.

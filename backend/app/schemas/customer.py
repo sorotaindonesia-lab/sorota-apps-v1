@@ -45,6 +45,7 @@ class CustomerListItem(BaseModel):
     name: str | None = None
     phone_number: str
     status: str
+    conversation_state: str | None = None
     business_name: str | None = None
     business_category: str | None = None
     location: str | None = None
@@ -60,6 +61,7 @@ class CustomerDetail(BaseModel):
     name: str | None = None
     phone_number: str
     status: str
+    conversation_state: str
     last_active_at: datetime | None = None
     business: BusinessRead | None = None
     created_at: datetime
