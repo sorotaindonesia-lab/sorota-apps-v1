@@ -84,6 +84,7 @@ async function handleRequest(request, response) {
 
     sendJson(response, 404, { ok: false, error: "not found" });
   } catch (error) {
+    console.error("Telegram webhook handling failed");
     console.error(error);
     sendJson(response, 500, { ok: false, error: "internal server error" });
   }
