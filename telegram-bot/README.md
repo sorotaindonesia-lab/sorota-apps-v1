@@ -112,3 +112,13 @@ Rp11.500
 Rp16.429
 Rp17.000-Rp19.000
 ```
+
+## Business Mentor Test
+
+After the bot confirms the profile is active, send:
+
+```text
+jualan saya sepi, harus gimana?
+```
+
+Expected response should feel like business advice, not a calculator-only bot. It should mention the business context and suggest practical next steps.

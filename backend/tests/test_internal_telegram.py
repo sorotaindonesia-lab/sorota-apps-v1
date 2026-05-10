@@ -195,3 +195,31 @@ def test_telegram_active_customer_can_get_recommended_price(client):
     assert "30,00%" in response.json()["reply_text"]
     assert "Rp16.429" in response.json()["reply_text"]
     assert "Rp17.000-Rp19.000" in response.json()["reply_text"]
+
+
+def test_telegram_active_customer_gets_general_business_advice(client):
+    def send(text: str, message_id: int):
+        return client.post(
+            "/internal/telegram/inbound",
+            json={
+                "telegram_user_id": "12345",
+                "chat_id": "55555",
+                "first_name": "Budi",
+                "message_text": text,
+                "telegram_message_id": str(message_id),
+                "raw_payload": {"update_id": message_id},
+            },
+        )
+
+    for index, text in enumerate(
+        ["Halo", "Ayam Geprek Mas Budi", "kuliner", "Bandung", "ayam geprek, es teh"],
+        start=1,
+    ):
+        assert send(text, index).status_code == 200
+
+    response = send("jualan saya sepi, harus gimana?", 6)
+    assert response.status_code == 200
+    assert response.json()["customer_status"] == "active"
+    assert "Ayam Geprek Mas Budi" in response.json()["reply_text"]
+    assert "jangan langsung banting harga" in response.json()["reply_text"]
+    assert "ayam geprek" in response.json()["reply_text"]

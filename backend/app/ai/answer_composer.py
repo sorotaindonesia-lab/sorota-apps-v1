@@ -122,6 +122,64 @@ def _fallback_recommend_price_answer(payload: AnswerComposerInput) -> str:
     )
 
 
+def _known_products(payload: AnswerComposerInput) -> list[str]:
+    if not payload.business:
+        return []
+    products = payload.business.get("known_products") or []
+    return [str(product) for product in products if product]
+
+
+def _fallback_general_business_answer(payload: AnswerComposerInput) -> str:
+    business_name = _business_name(payload)
+    category = _category_label(payload)
+    products = _known_products(payload)
+    text = payload.user_message.lower()
+
+    subject = "bisnis Kakak"
+    if business_name:
+        subject = business_name
+    elif category:
+        subject = f"bisnis {category} Kakak"
+
+    product_hint = ""
+    if products:
+        product_hint = f" Fokus dulu ke produk yang sudah jelas, seperti {', '.join(products[:2])}."
+
+    if any(keyword in text for keyword in ("sepi", "jualan turun", "omzet turun", "order turun", "penjualan turun")):
+        return (
+            f"Kalau {subject} sedang terasa sepi, jangan langsung banting harga dulu, Kak. Cek dulu sumber masalahnya: "
+            f"apakah traffic turun, orang tanya tapi tidak beli, atau pembeli lama belum repeat order.{product_hint}\n\n"
+            "Langkah praktis hari ini: catat 3 produk yang paling sering ditanya, buat promo kecil untuk salah satunya, "
+            "lalu follow up pelanggan lama dengan penawaran yang jelas. Kalau mau, kirim omzet atau jumlah order 7 hari terakhir, nanti saya bantu baca polanya."
+        )
+
+    if any(keyword in text for keyword in ("promo", "diskon", "bundling", "paket")):
+        return (
+            f"Untuk {subject}, promo paling aman biasanya bukan sekadar diskon besar, Kak. Lebih baik bikin paket yang tetap menjaga margin."
+            f"{product_hint}\n\n"
+            "Coba mulai dari bundling produk utama dengan item pelengkap, atau promo jam sepi. Sebelum jalan, hitung dulu HPP paketnya supaya diskonnya tidak menghabiskan margin."
+        )
+
+    if any(keyword in text for keyword in ("stok", "restock", "habis", "persediaan")):
+        return (
+            f"Untuk urusan stok di {subject}, pakai aturan sederhana dulu, Kak: pisahkan produk cepat laku, sedang, dan lambat."
+            f"{product_hint}\n\n"
+            "Restock lebih agresif hanya untuk produk cepat laku. Untuk produk lambat, tahan dulu atau buat paket bundling supaya kas tidak terlalu banyak nyangkut di stok."
+        )
+
+    if any(keyword in text for keyword in ("supplier", "bahan baku", "vendor")):
+        return (
+            f"Kalau mau cek supplier untuk {subject}, jangan cuma bandingkan harga satuan, Kak. Bandingkan juga stabilitas stok, ongkir, minimum order, dan konsistensi kualitas.\n\n"
+            "Langkah praktis: minta harga dari 2-3 supplier, lalu hitung dampaknya ke HPP produk utama. Kalau selisih HPP lumayan, baru pertimbangkan pindah atau bagi order ke dua supplier."
+        )
+
+    return (
+        f"Siap, Kak. Untuk {subject}, saya sarankan mulai dari keputusan yang paling dekat dengan uang masuk: harga jual, margin, produk paling laku, dan repeat order."
+        f"{product_hint}\n\n"
+        "Kalau Kakak mau, kirim satu pertanyaan yang lebih spesifik, misalnya mau cek harga jual, promo, stok, supplier, atau cara naikin penjualan minggu ini."
+    )
+
+
 def compose_fallback_answer(payload: AnswerComposerInput) -> str:
     if payload.missing_fields:
         if "hpp" in payload.missing_fields and "selling_price" in payload.missing_fields:
@@ -137,9 +195,11 @@ def compose_fallback_answer(payload: AnswerComposerInput) -> str:
     if "recommend_price" in payload.tool_results:
         return _fallback_recommend_price_answer(payload)
 
+    if payload.intent in {"general_business_advice", "promotion_advice", "restock_advice", "supplier_search"}:
+        return _fallback_general_business_answer(payload)
+
     return (
-        "Saya bisa bantu dari hitungan bisnis yang paling praktis dulu, Kak. "
-        "Coba kirim harga jual dan HPP untuk cek margin, atau HPP dan target margin untuk rekomendasi harga jual."
+        "Siap, Kak. Saya bantu dari sisi keputusan bisnisnya ya. Coba ceritakan konteksnya sedikit: produk apa, kondisi sekarang seperti apa, dan target Kakak ingin menaikkan penjualan, menjaga margin, atau mengatur stok?"
     )
 
 

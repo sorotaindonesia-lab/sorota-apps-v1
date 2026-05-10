@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from app.services.business_assistant_service import (
     answer_active_message,
+    detect_general_intent,
     parse_margin_request,
     parse_recommend_price_request,
 )
@@ -57,3 +58,18 @@ def test_answer_active_message_returns_recommend_price_reply():
     assert "30,00%" in reply.reply_text
     assert "Rp16.429" in reply.reply_text
     assert "Rp17.000-Rp19.000" in reply.reply_text
+
+
+def test_detect_general_intent():
+    assert detect_general_intent("stok saya mulai habis") == "restock_advice"
+    assert detect_general_intent("cara cari supplier murah") == "supplier_search"
+    assert detect_general_intent("mau bikin promo bundling") == "promotion_advice"
+    assert detect_general_intent("jualan saya sepi") == "general_business_advice"
+
+
+def test_answer_active_message_handles_general_business_question():
+    reply = answer_active_message("jualan saya sepi harus gimana?")
+
+    assert reply.handled is False
+    assert "jangan langsung banting harga" in reply.reply_text
+    assert "7 hari terakhir" in reply.reply_text

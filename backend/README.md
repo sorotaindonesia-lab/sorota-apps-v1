@@ -78,6 +78,15 @@ hpp 11500 target margin 30 harga jual berapa?
 
 The reply includes HPP, target margin, minimum price, and a rounded selling price range.
 
+For non-calculator business questions, active customers still get a mentor-style business response using their profile context:
+
+```text
+jualan saya sepi, harus gimana?
+mau bikin promo bundling
+stok saya mulai habis
+cara cari supplier murah
+```
+
 OpenAI-compatible API providers can be configured with:
 
 ```text

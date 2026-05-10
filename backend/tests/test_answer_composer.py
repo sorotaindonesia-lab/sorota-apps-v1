@@ -58,3 +58,40 @@ def test_fallback_recommend_price_answer_is_natural():
     assert "Rp11.500" in answer
     assert "Rp16.429" in answer
     assert "Rp17.000-Rp19.000" in answer
+
+
+def test_fallback_general_business_answer_acts_like_mentor():
+    answer = compose_fallback_answer(
+        AnswerComposerInput(
+            user_message="jualan saya lagi sepi, harus gimana?",
+            intent="general_business_advice",
+            customer={"name": "Budi"},
+            business={
+                "business_name": "Ayam Geprek Mas Budi",
+                "business_category": "kuliner",
+                "known_products": ["ayam geprek", "es teh"],
+            },
+            conversation_state="ACTIVE",
+        )
+    )
+
+    assert "Ayam Geprek Mas Budi" in answer
+    assert "ayam geprek" in answer
+    assert "jangan langsung banting harga" in answer
+    assert "7 hari terakhir" in answer
+
+
+def test_fallback_promotion_answer_mentions_margin():
+    answer = compose_fallback_answer(
+        AnswerComposerInput(
+            user_message="mau bikin promo bundling",
+            intent="promotion_advice",
+            customer={},
+            business={"business_name": "Kopi Budi", "business_category": "coffee_shop"},
+            conversation_state="ACTIVE",
+        )
+    )
+
+    assert "Kopi Budi" in answer
+    assert "bundling" in answer
+    assert "margin" in answer

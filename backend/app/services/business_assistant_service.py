@@ -132,6 +132,17 @@ def parse_recommend_price_request(message_text: str | None) -> RecommendPriceReq
     return RecommendPriceRequest(hpp=hpp, target_margin_percent=target_margin)
 
 
+def detect_general_intent(message_text: str | None) -> str:
+    text = _normalize_text(message_text)
+    if any(keyword in text for keyword in ("stok", "restock", "persediaan")):
+        return "restock_advice"
+    if any(keyword in text for keyword in ("supplier", "vendor", "bahan baku")):
+        return "supplier_search"
+    if any(keyword in text for keyword in ("promo", "diskon", "bundling", "paket")):
+        return "promotion_advice"
+    return "general_business_advice"
+
+
 def _primary_business(customer: Customer | None) -> Business | None:
     if customer is None or not customer.businesses:
         return None
@@ -250,11 +261,16 @@ def answer_active_message(
             handled=True,
         )
 
+    payload = AnswerComposerInput(
+        user_message=message_text or "",
+        intent=detect_general_intent(message_text),
+        customer=_customer_context(customer),
+        business=_business_context(customer),
+        conversation_state=_conversation_state(customer),
+        tool_results={},
+    )
+    reply = _compose(db, payload, customer)
     return AssistantReply(
-        reply_text=(
-            "Untuk saat ini saya bisa bantu hitung margin dan rekomendasi harga jual dulu, Kak.\n\n"
-            "Contoh hitung margin: harga jual 18000 hpp 11500\n"
-            "Contoh rekomendasi harga: hpp 11500 target margin 30 harga jual berapa?"
-        ),
+        reply_text=reply,
         handled=False,
     )
