@@ -1,2 +1,0 @@
-ALTER TABLE customers
-ADD COLUMN IF NOT EXISTS conversation_state TEXT NOT NULL DEFAULT 'NEW';

@@ -1,1 +1,0 @@
-"""Sorota backend package."""
