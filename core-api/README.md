@@ -23,6 +23,7 @@ go run cmd/api/main.go
 | GET    | /api/v1/chat/sessions/:user_id          | List sesi chat              |
 | GET    | /api/v1/chat/messages/:session_id       | List pesan dalam sesi       |
 | GET    | /api/v1/mentors                         | List mentor                 |
+| POST   | /api/v1/onboarding/parse                | Parse jawaban onboarding    |
 | POST   | /api/v1/whatsapp/message                | Terima pesan dari WhatsApp  |
 
 ## AI Provider

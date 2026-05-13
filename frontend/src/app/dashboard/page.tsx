@@ -20,17 +20,31 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const userId = localStorage.getItem("sorota_user_id");
-    if (!userId) {
-      setLoading(false);
-      return;
+    let ignore = false;
+
+    async function loadProfile() {
+      const userId = localStorage.getItem("sorota_user_id");
+      if (!userId) {
+        if (!ignore) setLoading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/api/v1/business-profiles/${userId}`);
+        const json = res.ok ? await res.json() : null;
+        if (!ignore) setProfile(json?.data ?? null);
+      } catch {
+        if (!ignore) setProfile(null);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
     }
 
-    fetch(`${API_URL}/api/v1/business-profiles/${userId}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => setProfile(json?.data ?? null))
-      .catch(() => setProfile(null))
-      .finally(() => setLoading(false));
+    loadProfile();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   if (loading) {

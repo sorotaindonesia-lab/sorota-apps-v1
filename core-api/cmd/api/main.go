@@ -14,6 +14,7 @@ import (
 	"github.com/sorota/core-api/internal/database"
 	"github.com/sorota/core-api/internal/mentor"
 	apimiddleware "github.com/sorota/core-api/internal/middleware"
+	"github.com/sorota/core-api/internal/onboarding"
 	"github.com/sorota/core-api/internal/whatsapp"
 	"github.com/sorota/core-api/pkg/response"
 )
@@ -42,6 +43,7 @@ func main() {
 	businessHandler := business.NewHandler(businessRepo)
 	chatHandler := chat.NewHandler(chatRepo, businessRepo, mentorRepo, aiProvider, cfg.AISystemPath)
 	mentorHandler := mentor.NewHandler(mentorRepo)
+	onboardingHandler := onboarding.NewHandler()
 	whatsappHandler := whatsapp.NewHandler(chatRepo, businessRepo, aiProvider, cfg.AISystemPath)
 
 	// Router
@@ -67,6 +69,9 @@ func main() {
 
 		// Mentors
 		r.Get("/mentors", mentorHandler.List)
+
+		// Onboarding
+		r.Post("/onboarding/parse", onboardingHandler.Parse)
 
 		// WhatsApp bridge
 		r.Post("/whatsapp/message", whatsappHandler.Receive)

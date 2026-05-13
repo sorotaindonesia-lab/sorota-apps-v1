@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -61,20 +62,34 @@ func (h *Handler) Send(w http.ResponseWriter, r *http.Request) {
 		sessionID = session.ID
 	}
 
+	if isGreetingOnly(req.Message) {
+		if _, err := h.repo.SaveMessage(ctx, sessionID, "user", req.Message); err != nil {
+			response.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		reply := h.buildGreetingReply(ctx, req.UserID)
+		if _, err := h.repo.SaveMessage(ctx, sessionID, "assistant", reply); err != nil {
+			response.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		response.JSON(w, http.StatusOK, SendMessageResponse{
+			SessionID: sessionID,
+			Reply:     reply,
+		})
+		return
+	}
+
 	// Fetch mentors if the message is mentor-related (single DB call reused for both prompt + response)
 	var mentorCards []MentorCard
 	var mentorSection string
 	if isMentorRelated(req.Message) {
 		mentors, err := h.mentorRepo.List(ctx)
 		if err == nil && len(mentors) > 0 {
-			mentorSection = formatMentorSection(mentors)
-			for _, m := range mentors {
-				mentorCards = append(mentorCards, MentorCard{
-					Name:       m.Name,
-					Expertise:  m.Expertise,
-					BookingURL: m.BookingURL,
-				})
-			}
+			profile, _ := h.businessRepo.GetByUserID(ctx, req.UserID)
+			mentorCards = recommendMentors(req.Message, profile, mentors, 1)
+			mentorSection = formatMentorSection(mentorCards)
 		}
 	}
 
@@ -177,23 +192,177 @@ func (h *Handler) buildBusinessContext(ctx context.Context, userID string) strin
 	return sb.String()
 }
 
+func (h *Handler) buildGreetingReply(ctx context.Context, userID string) string {
+	businessName := ""
+	if profile, err := h.businessRepo.GetByUserID(ctx, userID); err == nil && profile.BusinessName != "" {
+		businessName = profile.BusinessName
+	}
+
+	if businessName == "" {
+		return "Haloww, salam kenal! Saya Sorota, asisten bisnis yang siap bantu kamu menentukan strategi bisnis dengan lebih praktis.\n\n" +
+			"Kamu bisa tanya soal omzet, margin, harga, promosi, operasional, atau target berikutnya.\n\n" +
+			"Mau saya bantu mulai dari bagian mana dulu?"
+	}
+
+	return fmt.Sprintf(
+		"Haloww, salam kenal owner %s! Saya Sorota, asisten bisnis yang siap bantu kamu menentukan strategi bisnis dengan lebih praktis.\n\n"+
+			"Kamu bisa tanya soal omzet, margin, harga, promosi, operasional, atau target berikutnya.\n\n"+
+			"Mau saya bantu mulai dari bagian mana dulu?",
+		businessName,
+	)
+}
+
 // formatMentorSection builds the prompt section for mentor recommendations.
-func formatMentorSection(mentors []mentor.Mentor) string {
+func formatMentorSection(mentors []MentorCard) string {
+	if len(mentors) == 0 {
+		return ""
+	}
+
 	var sb strings.Builder
 	sb.WriteString("MENTOR_SECTION:\n")
-	sb.WriteString("Berikut daftar mentor yang tersedia di platform Sorota. ")
-	sb.WriteString("Rekomendasikan mentor yang paling cocok berdasarkan masalah user. ")
-	sb.WriteString("Sertakan nama mentor, keahliannya, dan alasan singkat kenapa cocok. ")
-	sb.WriteString("Jangan suruh user mencari mentor di tempat lain.\n\n")
+	sb.WriteString("Berikut mentor Sorota yang paling cocok berdasarkan profil dan pertanyaan user. ")
+	sb.WriteString("Rekomendasikan hanya mentor di daftar ini. ")
+	sb.WriteString("Jangan tulis URL booking mentah karena tombol booking akan tampil di kartu mentor.\n\n")
 	for i, m := range mentors {
-		fmt.Fprintf(&sb, "%d. %s — Keahlian: %s\n", i+1, m.Name, m.Expertise)
-		fmt.Fprintf(&sb, "   Deskripsi: %s\n", m.Description)
-		if m.BusinessBackground != nil {
-			fmt.Fprintf(&sb, "   Background: %s\n", *m.BusinessBackground)
-		}
-		fmt.Fprintf(&sb, "   Booking: %s\n\n", m.BookingURL)
+		fmt.Fprintf(&sb, "%d. %s - Keahlian: %s\n", i+1, m.Name, m.Expertise)
+		fmt.Fprintf(&sb, "   Alasan cocok: %s\n\n", m.Reason)
 	}
 	return sb.String()
+}
+
+type mentorCandidate struct {
+	card  MentorCard
+	score int
+}
+
+func recommendMentors(
+	userMessage string,
+	profile *business.Profile,
+	mentors []mentor.Mentor,
+	limit int,
+) []MentorCard {
+	if limit <= 0 {
+		limit = 1
+	}
+
+	context := buildMentorContext(userMessage, profile)
+	userContext := strings.ToLower(userMessage)
+	candidates := make([]mentorCandidate, 0, len(mentors))
+	for _, m := range mentors {
+		score, reason := scoreMentor(userContext, context, m)
+		candidates = append(candidates, mentorCandidate{
+			score: score,
+			card: MentorCard{
+				Name:       m.Name,
+				Expertise:  m.Expertise,
+				Reason:     reason,
+				BookingURL: m.BookingURL,
+			},
+		})
+	}
+
+	sort.SliceStable(candidates, func(i, j int) bool {
+		return candidates[i].score > candidates[j].score
+	})
+
+	if limit > len(candidates) {
+		limit = len(candidates)
+	}
+
+	recommended := make([]MentorCard, 0, limit)
+	for _, candidate := range candidates[:limit] {
+		recommended = append(recommended, candidate.card)
+	}
+	return recommended
+}
+
+func buildMentorContext(userMessage string, profile *business.Profile) string {
+	var sb strings.Builder
+	sb.WriteString(strings.ToLower(userMessage))
+	if profile == nil {
+		return sb.String()
+	}
+
+	writeContextValue(&sb, profile.BusinessName)
+	writeContextValue(&sb, profile.BusinessType)
+	writeContextValue(&sb, profile.Location)
+	writeContextValue(&sb, profile.MainProblem)
+	if profile.MainProducts != nil {
+		writeContextValue(&sb, *profile.MainProducts)
+	}
+	if profile.TargetGoal != nil {
+		writeContextValue(&sb, *profile.TargetGoal)
+	}
+	return sb.String()
+}
+
+func writeContextValue(sb *strings.Builder, value string) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return
+	}
+	sb.WriteString(" ")
+	sb.WriteString(strings.ToLower(value))
+}
+
+func scoreMentor(userContext, context string, m mentor.Mentor) (int, string) {
+	expertise := strings.ToLower(m.Expertise)
+	description := strings.ToLower(m.Description)
+	text := expertise + " " + description
+
+	score := 1
+	reason := "Cocok untuk membantu merapikan prioritas bisnis dan menentukan langkah berikutnya."
+
+	if containsAny(userContext, []string{"f&b", "fnb", "kuliner", "makanan", "minuman", "kopi", "kafe", "cafe"}) &&
+		containsAny(text, []string{"f&b", "kuliner"}) {
+		score += 20
+	}
+
+	if containsAny(userContext, []string{"promosi", "marketing", "iklan", "online", "marketplace", "e-commerce", "sosmed", "instagram", "tiktok"}) &&
+		containsAny(text, []string{"digital", "marketing", "e-commerce"}) {
+		score += 20
+	}
+
+	if containsAny(userContext, []string{"margin", "laba", "profit", "cash flow", "cashflow", "modal", "hpp", "pembukuan", "keuangan"}) &&
+		containsAny(text, []string{"keuangan", "pembukuan"}) {
+		score += 20
+	}
+
+	if containsAny(userContext, []string{"fashion", "baju", "pakaian", "hijab", "retail", "stok", "toko"}) &&
+		containsAny(text, []string{"retail", "fashion"}) {
+		score += 20
+	}
+
+	if containsAny(context, []string{"f&b", "fnb", "kuliner", "makanan", "minuman", "kopi", "kafe", "cafe", "warung", "box"}) &&
+		containsAny(text, []string{"f&b", "kuliner"}) {
+		score += 12
+		reason = "Paling relevan karena fokus di F&B/kuliner, cocok untuk membahas produk, paket jualan, operasional, dan scale omzet."
+	}
+
+	if containsAny(context, []string{"promosi", "marketing", "iklan", "online", "marketplace", "e-commerce", "sosmed", "instagram", "tiktok", "channel"}) &&
+		containsAny(text, []string{"digital", "marketing", "e-commerce"}) {
+		score += 10
+		reason = "Cocok kalau fokus utama kamu adalah promosi, channel penjualan online, dan akuisisi pelanggan baru."
+	}
+
+	if containsAny(context, []string{"margin", "laba", "profit", "cash flow", "cashflow", "modal", "hpp", "pembukuan", "keuangan"}) &&
+		containsAny(text, []string{"keuangan", "pembukuan"}) {
+		score += 10
+		reason = "Cocok kalau kamu ingin membedah margin, cash flow, HPP, pembukuan, dan keputusan keuangan UMKM."
+	}
+
+	if containsAny(context, []string{"fashion", "baju", "pakaian", "hijab", "retail", "stok", "toko"}) &&
+		containsAny(text, []string{"retail", "fashion"}) {
+		score += 10
+		reason = "Cocok untuk membahas stok, pricing, brand, dan penjualan retail/fashion."
+	}
+
+	if containsAny(context, []string{"scale", "naik", "omzet", "omset", "cabang", "repeat order", "order harian"}) &&
+		containsAny(text, []string{"profitabilitas", "perluasan", "f&b", "kuliner"}) {
+		score += 4
+	}
+
+	return score, reason
 }
 
 // isMentorRelated checks if the user message is asking about mentors.
@@ -206,6 +375,79 @@ func isMentorRelated(msg string) bool {
 	}
 	for _, kw := range keywords {
 		if strings.Contains(msg, kw) {
+			return true
+		}
+	}
+	return false
+}
+
+func isGreetingOnly(msg string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(msg))
+	normalized = strings.NewReplacer(
+		".", " ",
+		",", " ",
+		"!", " ",
+		"?", " ",
+		"~", " ",
+		":", " ",
+		";", " ",
+		"-", " ",
+	).Replace(normalized)
+
+	tokens := strings.Fields(normalized)
+	if len(tokens) == 0 || len(tokens) > 4 {
+		return false
+	}
+
+	allowed := map[string]bool{
+		"halo":            true,
+		"haloo":           true,
+		"halooo":          true,
+		"halow":           true,
+		"haloww":          true,
+		"halowww":         true,
+		"hallo":           true,
+		"hai":             true,
+		"hi":              true,
+		"hey":             true,
+		"hei":             true,
+		"selamat":         true,
+		"pagi":            true,
+		"siang":           true,
+		"sore":            true,
+		"malam":           true,
+		"assalamualaikum": true,
+		"assalamu":        true,
+		"min":             true,
+		"admin":           true,
+		"kak":             true,
+		"mas":             true,
+		"mbak":            true,
+		"pak":             true,
+		"bu":              true,
+		"sorota":          true,
+	}
+
+	hasGreeting := false
+	for _, token := range tokens {
+		if strings.HasPrefix(token, "halo") || strings.HasPrefix(token, "hallo") || allowed[token] {
+			if strings.HasPrefix(token, "halo") || strings.HasPrefix(token, "hallo") ||
+				token == "hai" || token == "hi" || token == "hey" || token == "hei" ||
+				token == "pagi" || token == "siang" || token == "sore" || token == "malam" ||
+				token == "assalamualaikum" || token == "assalamu" {
+				hasGreeting = true
+			}
+			continue
+		}
+		return false
+	}
+
+	return hasGreeting
+}
+
+func containsAny(value string, keywords []string) bool {
+	for _, keyword := range keywords {
+		if strings.Contains(value, keyword) {
 			return true
 		}
 	}

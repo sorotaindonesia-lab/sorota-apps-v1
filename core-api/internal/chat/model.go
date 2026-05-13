@@ -29,6 +29,7 @@ type SendMessageRequest struct {
 type MentorCard struct {
 	Name       string `json:"name"`
 	Expertise  string `json:"expertise"`
+	Reason     string `json:"reason"`
 	BookingURL string `json:"booking_url"`
 }
 

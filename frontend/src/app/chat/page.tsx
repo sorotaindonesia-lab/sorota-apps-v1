@@ -7,6 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_CORE_API_URL || "http://localhost:8080";
 interface MentorCard {
   name: string;
   expertise: string;
+  reason?: string;
   booking_url: string;
 }
 
@@ -167,19 +168,33 @@ export default function ChatPage() {
 
 function MentorCardComponent({ mentor }: { mentor: MentorCard }) {
   return (
-    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex items-center justify-between gap-4">
-      <div>
-        <p className="text-sm font-semibold text-gray-900">{mentor.name}</p>
-        <p className="text-xs text-blue-700 mt-0.5">{mentor.expertise}</p>
+    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-blue-600 px-2 py-0.5 text-[11px] font-semibold text-white">
+              Paling cocok
+            </span>
+            <span className="text-xs font-medium text-blue-700">
+              {mentor.expertise}
+            </span>
+          </div>
+          <p className="text-sm font-semibold text-gray-900">{mentor.name}</p>
+          {mentor.reason && (
+            <p className="mt-1 text-xs leading-relaxed text-gray-600">
+              {mentor.reason}
+            </p>
+          )}
+        </div>
+        <a
+          href={mentor.booking_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          Book Mentor
+        </a>
       </div>
-      <a
-        href={mentor.booking_url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="shrink-0 bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        Book Mentor
-      </a>
     </div>
   );
 }
