@@ -1,0 +1,14 @@
+{
+  "name": "sorota-migrations",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "migrate-up": "node scripts/migrate.js up",
+    "migrate-down": "node scripts/migrate.js down",
+    "reset": "node scripts/migrate.js reset",
+    "seed": "node scripts/migrate.js seed"
+  },
+  "dependencies": {
+    "pg": "^8.12.0"
+  }
+}
