@@ -1,0 +1,21 @@
+{
+  "scenario": "User ingin buka cabang kedua tapi belum stabil",
+  "user_message": "Saya mau buka cabang kedua laundry saya. Modal sudah ada 30 juta.",
+  "expected_response_structure": {
+    "opening_insight": "Semangat scale-up itu bagus! Tapi sebelum buka cabang, ada beberapa hal yang perlu dicek dulu supaya cabang kedua tidak justru membebani cabang pertama.",
+    "readiness_check": "Cabang pertama sudah stabil? Cek 3 hal: (1) profit konsisten 3 bulan terakhir, (2) operasional bisa jalan tanpa kamu 5 hari seminggu, (3) ada SOP tertulis yang bisa diajarkan ke karyawan baru.",
+    "action_steps": [
+      "Audit dulu cabang pertama: berapa net profit per bulan? Apakah sudah 15% ke atas?",
+      "Buat SOP operasional sederhana sebelum buka cabang baru.",
+      "Survei lokasi: pilih area dengan density kos/apartemen tinggi, bukan terlalu dekat cabang pertama.",
+      "Sisihkan 30% dari 30 juta sebagai buffer operasional 3 bulan pertama."
+    ],
+    "closing_question": "Cabang pertama sekarang bisa jalan tanpa kamu hadir setiap hari?"
+  },
+  "quality_markers": [
+    "Tidak menghambat, tapi memberi syarat konkret",
+    "Readiness check yang bisa langsung dijawab user",
+    "Tips praktis soal lokasi",
+    "Financial buffer yang realistis"
+  ]
+}

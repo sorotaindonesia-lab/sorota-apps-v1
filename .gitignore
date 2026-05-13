@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+tmp/
+
+# Go
+*.exe
+*.test
+*.out
+core-api/bin/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# WhatsApp session
+whatsapp/.wwebjs_auth/
+whatsapp/.wwebjs_cache/

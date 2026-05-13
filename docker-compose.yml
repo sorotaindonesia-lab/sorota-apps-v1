@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  core-api:
+    build:
+      context: ./core-api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./core-api/.env
+    volumes:
+      - ./ai-system:/ai-system
+    depends_on:
+      - migrate
+
+  migrate:
+    build:
+      context: ./database-migrations
+      dockerfile: Dockerfile
+    env_file:
+      - ./database-migrations/.env
+    command: ["up"]
+
+  whatsapp:
+    build:
+      context: ./whatsapp
+    env_file:
+      - ./whatsapp/.env
+    depends_on:
+      - core-api
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./frontend/.env.local
+    depends_on:
+      - core-api

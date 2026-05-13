@@ -1,0 +1,20 @@
+{
+  "scenario": "User mau naikkan harga tapi takut kehilangan pelanggan",
+  "user_message": "Saya mau naikan harga nasi kotak dari 15rb ke 18rb tapi takut pelanggan kabur",
+  "expected_response_structure": {
+    "opening_insight": "Kenaikan 20% itu wajar dan bisa dilakukan dengan cara yang tepat supaya pelanggan tidak kaget.",
+    "diagnosis": "Rasa takut kehilangan pelanggan adalah normal, tapi sering kali lebih sedikit pelanggan yang benar-benar pergi dibanding yang kita bayangkan — terutama kalau kita komunikasikan dengan baik.",
+    "action_steps": [
+      "Naikan bertahap: 15rb → 16.5rb dulu selama 1 bulan, lalu ke 18rb.",
+      "Tambahkan nilai yang terasa: porsi sedikit lebih besar, packaging lebih rapi, atau tambah lauk kecil.",
+      "Komunikasikan ke pelanggan setia lebih dulu dengan jujur."
+    ],
+    "closing_question": "Pelanggan kamu mayoritas dari mana — kantor, kos-kosan, atau walk-in?"
+  },
+  "quality_markers": [
+    "Validasi perasaan user dulu",
+    "Strategi bertahap, tidak shock therapy",
+    "Ada taktik value-add yang konkret",
+    "Pertanyaan untuk personalisasi saran lebih lanjut"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "scenario": "User tanya kenapa margin tipis di bisnis kopi",
+  "user_message": "Omset saya 20 juta sebulan tapi bersihnya cuma 2 juta. Kenapa ya?",
+  "expected_response_structure": {
+    "opening_insight": "Margin 10% itu memang di bawah rata-rata bisnis kopi yang sehat (15-25%). Ada beberapa area yang biasanya jadi penyebab.",
+    "diagnosis": "Dari angka yang kamu kasih, kemungkinan besar ada di salah satu (atau kombinasi): food cost terlalu tinggi, harga jual terlalu rendah, atau biaya operasional yang tidak terkontrol.",
+    "action_steps": [
+      "Hitung food cost ratio: total bahan baku dibagi omset. Idealnya maksimal 35%.",
+      "Cek harga jual produk terlaris — apakah sudah cover biaya + profit 20%?",
+      "Catat semua pengeluaran selama 1 minggu untuk cari kebocoran."
+    ],
+    "closing_question": "Boleh tahu kira-kira berapa persen dari 20 juta itu habis untuk bahan baku?"
+  },
+  "quality_markers": [
+    "Ada angka konkret sebagai benchmark",
+    "Diagnosis tidak menghakimi",
+    "Action steps bisa langsung dijalankan",
+    "Closing question membuka diskusi lebih dalam"
+  ]
+}
